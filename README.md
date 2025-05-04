@@ -8,8 +8,9 @@ A Python-based real-time data dashboard that integrates with the Model Context P
 * **MCP Integration**: Connects with MCP servers to fetch contextual data.
 * **Interactive UI**: User-friendly interface for data exploration.
 * **Modular Architecture**: Easily extendable components for scalability.
+* **One-Click Start**: Quickly launch both the MCP server and Streamlit dashboard with a single command.
 
-##  Technologies Used
+## Technologies Used
 
 * **Frontend**: [Streamlit](https://streamlit.io/) for interactive dashboards.
 * **Backend**: Python with [FastAPI](https://fastapi.tiangolo.com/) for API development.
@@ -18,26 +19,22 @@ A Python-based real-time data dashboard that integrates with the Model Context P
 
 ## Screenshots
 
-![Dashboard Overview](link_to_screenshot1)
-*Figure 1: Overview of the real-time dashboard interface.*
-
-![Live Data Stream](link_to_screenshot2)
-*Figure 2: Live data streaming and visualization.*
+*(Coming soon!)*
 
 ## Installation
 
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/JTMarcu/real-time-data-dashboard.git
-   cd real-time-data-dashboard
+   git clone https://github.com/JTMarcu/live-data-visualizer.git
+   cd live-data-visualizer
    ```
 
 2. **Create a Virtual Environment**
 
    ```bash
-   python3 -m venv venv
-   source venv/bin/activate
+   python -m venv venv
+   .\venv\Scripts\activate
    ```
 
 3. **Install Dependencies**
@@ -46,25 +43,37 @@ A Python-based real-time data dashboard that integrates with the Model Context P
    pip install -r requirements.txt
    ```
 
-4. **Run the Application**
+4. **Configure Environment Variables**
 
-   ```bash
-   streamlit run app.py
-   ```
+Create a `.env` file (or copy from `.env.example`) and set your MCP server URL:
 
-##  Configuration
+```bash
+MCP_SERVER_URL=http://localhost:8000
+```
 
-* **MCP Server URL**: Set the MCP server endpoint in the `config.py` file.
-* **API Keys**: Store any necessary API keys in a `.env` file.
-* **Data Sources**: Configure data source endpoints in the `data_sources.py` module.
+## Quick Start
+
+To launch the MCP server and Streamlit dashboard together, run:
+
+```bash
+start_dashboard.bat
+```
+
+This will:
+
+* Start the MCP server on `localhost:8000`
+* Start the Streamlit app on `localhost:8501`
+* Open two terminal windows automatically
+
+✅ Make sure to activate your virtual environment and install dependencies first!
 
 ## Usage
 
 Once the application is running:
 
-1. Navigate to `http://localhost:8501` in your web browser.
-2. Use the sidebar to select data streams or adjust visualization parameters.
-3. Monitor real-time data updates and interact with the dashboard components.
+1. Navigate to [http://localhost:8501](http://localhost:8501) in your web browser.
+2. Click **Fetch Live Data** to retrieve real-time values from the MCP server.
+3. Monitor live updates and explore the dashboard.
 
 ## Testing
 
@@ -74,7 +83,7 @@ To run the test suite:
 pytest tests/
 ```
 
-Ensure all tests pass to validate the functionality of the application components.
+✅ Ensure your MCP server is running before executing tests.
 
 ## License
 
@@ -86,5 +95,3 @@ This project is licensed under the [MIT License](LICENSE).
 * [Streamlit](https://streamlit.io/)
 * [FastAPI](https://fastapi.tiangolo.com/)
 * [Pandas](https://pandas.pydata.org/)
-
----
