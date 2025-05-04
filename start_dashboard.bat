@@ -1,0 +1,6 @@
+@echo off
+echo Starting MCP Server...
+start cmd /k "cd /d %CD% && .\venv\Scripts\activate && uvicorn mcp_server.server:app --reload --host 0.0.0.0 --port 8000"
+timeout /t 5
+echo Starting Streamlit Dashboard...
+start cmd /k "cd /d %CD% && .\venv\Scripts\activate && streamlit run app.py"
