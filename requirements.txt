@@ -6,3 +6,4 @@ pytest
 uvicorn
 mcp[cli]
 git+https://github.com/modelcontextprotocol/python-sdk.git
+yfinance

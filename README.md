@@ -5,6 +5,7 @@ A Python-based real-time data dashboard that integrates with the Model Context P
 ## Features
 
 * **Real-Time Data Visualization**: Stream and display live data updates.
+* **Stock Price Fetching**: Retrieve and visualize live stock prices for any symbol.
 * **MCP Integration**: Connects with MCP servers to fetch contextual data.
 * **Interactive UI**: User-friendly interface for data exploration.
 * **Modular Architecture**: Easily extendable components for scalability.
@@ -72,7 +73,7 @@ This will:
 Once the application is running:
 
 1. Navigate to [http://localhost:8501](http://localhost:8501) in your web browser.
-2. Click **Fetch Live Data** to retrieve real-time values from the MCP server.
+2. Enter a stock symbol in the sidebar (e.g., `AAPL`) to fetch live stock prices.
 3. Monitor live updates and explore the dashboard.
 
 ## Testing
