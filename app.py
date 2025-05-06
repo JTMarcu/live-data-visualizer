@@ -17,7 +17,7 @@ with st.sidebar:
     st.header("Stock Settings")
     stock_symbols = st.text_input(
         "Enter stock symbols (comma-separated):",
-        value="RIVN,TSLA,COST"
+        value="RIVN,TSLA,COST,AAPL"
     ).upper().replace(" ", "").split(",")
 
 # Detect stock change
