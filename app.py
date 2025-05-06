@@ -2,7 +2,7 @@ import streamlit as st
 from utils.data_fetcher import fetch_stock_price
 from streamlit_autorefresh import st_autorefresh
 
-count = st_autorefresh(interval=10000, key="datarefresh")
+count = st_autorefresh(interval=7000, key="datarefresh")
 
 st.title("Real-Time Stock Dashboard")
 
@@ -17,7 +17,7 @@ with st.sidebar:
     st.header("Stock Settings")
     stock_symbols = st.text_input(
         "Enter stock symbols (comma-separated):",
-        value="RIVN,TSLA,COST,AAPL"
+        value="RIVN"
     ).upper().replace(" ", "").split(",")
 
 # Detect stock change
@@ -35,13 +35,21 @@ for symbol in stock_symbols:
         st.error(f"Exception fetching {symbol}: {str(e)}")
 
 # Plot each stock
-# Smarter two-column layout, preserving order
-for i in range(0, len(stock_symbols), 2):
-    cols = st.columns(2)
-    for idx in range(2):
-        if i + idx < len(stock_symbols):
-            symbol = stock_symbols[i + idx]
-            with cols[idx]:
-                st.subheader(f"Live {symbol} Stock Price")
-                if st.session_state.stock_prices.get(symbol):
-                    st.line_chart(st.session_state.stock_prices[symbol])
+# Check if only one stock symbol is requested
+if len(stock_symbols) == 1:
+    symbol = stock_symbols[0]
+    st.header(f"Live {symbol} Stock Price")
+    if st.session_state.stock_prices.get(symbol):
+        st.line_chart(st.session_state.stock_prices[symbol])
+
+else:
+    # Plot each stock with a smarter two-column layout, preserving order
+    for i in range(0, len(stock_symbols), 2):
+        cols = st.columns(2)
+        for idx in range(2):
+            if i + idx < len(stock_symbols):
+                symbol = stock_symbols[i + idx]
+                with cols[idx]:
+                    st.subheader(f"Live {symbol} Stock Price")
+                    if st.session_state.stock_prices.get(symbol):
+                        st.line_chart(st.session_state.stock_prices[symbol])
