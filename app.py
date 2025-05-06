@@ -1,10 +1,32 @@
+# app.py
+
 import streamlit as st
 from utils.data_fetcher import fetch_stock_price, fetch_company_name
 from streamlit_autorefresh import st_autorefresh
 import pandas as pd
+import datetime
 
-# Auto-refresh every 7 seconds
-count = st_autorefresh(interval=7000, key="datarefresh")
+# Sidebar inputs first
+with st.sidebar:
+    st.header("Stock Settings")
+    stock_symbols = st.text_input(
+        "Enter stock symbols (comma-separated):",
+        value="RIVN"
+    ).upper().replace(" ", "").split(",")
+
+    timeframe = st.selectbox(
+        "Select timeframe to view:",
+        ("Last 1 Hour", "Last 1 Day", "Last 5 Days")
+    )
+
+    refresh_interval = st.selectbox(
+        "Refresh Interval (seconds):",
+        (5, 10, 30),
+        index=1  # default to 10s
+    )
+
+# Auto-refresh every X seconds
+count = st_autorefresh(interval=refresh_interval * 1000, key="datarefresh")
 
 st.title("Real-Time Stock Dashboard")
 
@@ -15,14 +37,6 @@ if "last_stock_symbols" not in st.session_state:
     st.session_state.last_stock_symbols = []
 if "company_names" not in st.session_state:
     st.session_state.company_names = {}
-
-# Sidebar input
-with st.sidebar:
-    st.header("Stock Settings")
-    stock_symbols = st.text_input(
-        "Enter stock symbols (comma-separated):",
-        value="RIVN"
-    ).upper().replace(" ", "").split(",")
 
 # Detect stock change
 if st.session_state.last_stock_symbols != stock_symbols:
@@ -45,25 +59,46 @@ for symbol in stock_symbols:
     except Exception as e:
         st.error(f"Exception fetching {symbol}: {str(e)}")
 
-def prepare_dataframe(data_list):
-    """Safely prepare a DataFrame whether data is old format (floats) or new format (dicts)."""
+# Prepare DataFrame safely
+def prepare_dataframe(data_list, timeframe_selection):
     df = pd.DataFrame(data_list)
 
     if 'timestamp' not in df.columns:
-        # Old format detected (plain float list)
-        df['timestamp'] = pd.date_range(end=pd.Timestamp.now(), periods=len(df), freq='7S')
-        df['price'] = df[0]  # 0 is the first unnamed column
-        df = df[['timestamp', 'price']]  # reorder columns
+        df['timestamp'] = pd.date_range(end=pd.Timestamp.now(tz="UTC"), periods=len(df), freq='7S')
+        df['price'] = df[0]
+        df = df[['timestamp', 'price']]
 
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     df = df.set_index('timestamp')
+
+    # Make "now" timezone-aware
+    now = pd.Timestamp.now(tz="UTC")
+
+    # Filter by timeframe
+    if timeframe_selection == "Last 1 Hour":
+        cutoff = now - pd.Timedelta(hours=1)
+    elif timeframe_selection == "Last 1 Day":
+        cutoff = now - pd.Timedelta(days=1)
+    elif timeframe_selection == "Last 5 Days":
+        cutoff = now - pd.Timedelta(days=5)
+    else:
+        cutoff = now - pd.Timedelta(days=5)
+
+    df = df[df.index >= cutoff]
     return df
 
-def display_stock_data(symbol, company_name):
-    """Display stock data including line chart and metrics."""
+# Display function
+def display_stock_data(symbol, company_name, timeframe_selection):
     if st.session_state.stock_prices.get(symbol):
-        df = prepare_dataframe(st.session_state.stock_prices[symbol])
-        st.line_chart(df['price'])
+        df = prepare_dataframe(st.session_state.stock_prices[symbol], timeframe_selection)
+
+        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        st.caption(f"Last Updated: {now}")
+
+        # Add moving average
+        df['moving_avg'] = df['price'].rolling(window=5).mean()
+
+        st.line_chart(df[['price', 'moving_avg']])
 
         latest_price = df['price'].iloc[-1]
         previous_price = df['price'].iloc[-2] if len(df) > 1 else latest_price
@@ -80,8 +115,11 @@ if len(stock_symbols) == 1:
     # Single stock view
     symbol = stock_symbols[0]
     company_name = st.session_state.company_names.get(symbol, symbol)
-    st.markdown(f"**Live Stock Price**<br>{company_name}", unsafe_allow_html=True)
-    display_stock_data(symbol, company_name)
+    st.markdown(f"""
+        <div style="font-size:20px; font-weight:bold;">Live Stock Price</div>
+        <div style="font-size:16px; color:gray;">{company_name}</div>
+    """, unsafe_allow_html=True)
+    display_stock_data(symbol, company_name, timeframe)
 else:
     # Multi-stock view
     for i in range(0, len(stock_symbols), 2):
@@ -91,5 +129,8 @@ else:
                 symbol = stock_symbols[i + idx]
                 company_name = st.session_state.company_names.get(symbol, symbol)
                 with cols[idx]:
-                    st.markdown(f"**Live Stock Price**<br>{company_name}", unsafe_allow_html=True)
-                    display_stock_data(symbol, company_name)
+                    st.markdown(f"""
+                        <div style="font-size:20px; font-weight:bold;">Live Stock Price</div>
+                        <div style="font-size:16px; color:gray;">{company_name}</div>
+                    """, unsafe_allow_html=True)
+                    display_stock_data(symbol, company_name, timeframe)
