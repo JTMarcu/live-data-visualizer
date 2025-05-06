@@ -35,13 +35,13 @@ for symbol in stock_symbols:
         st.error(f"Exception fetching {symbol}: {str(e)}")
 
 # Plot each stock
-# Create two columns
-col1, col2 = st.columns(2)
-
-# Alternate adding charts between columns
-for idx, symbol in enumerate(stock_symbols):
-    with (col1 if idx % 2 == 0 else col2):
-        st.subheader(f"Live {symbol} Stock Price")
-        if st.session_state.stock_prices.get(symbol):
-            st.line_chart(st.session_state.stock_prices[symbol])
-
+# Smarter two-column layout, preserving order
+for i in range(0, len(stock_symbols), 2):
+    cols = st.columns(2)
+    for idx in range(2):
+        if i + idx < len(stock_symbols):
+            symbol = stock_symbols[i + idx]
+            with cols[idx]:
+                st.subheader(f"Live {symbol} Stock Price")
+                if st.session_state.stock_prices.get(symbol):
+                    st.line_chart(st.session_state.stock_prices[symbol])
