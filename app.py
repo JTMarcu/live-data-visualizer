@@ -96,6 +96,8 @@ def display_stock_data(symbol, company_name, timeframe_selection):
         # Use live collected data
         if st.session_state.stock_prices.get(symbol):
             df = prepare_dataframe(st.session_state.stock_prices[symbol], timeframe_selection)
+        else:
+            df = pd.DataFrame()
     else:
         # Fetch full historical data
         if timeframe_selection == "Last 1 Month":
@@ -103,27 +105,28 @@ def display_stock_data(symbol, company_name, timeframe_selection):
         elif timeframe_selection == "Last 3 Months":
             df = fetch_historical_data(symbol, period="3mo", interval="1d")
         else:
-            df = pd.DataFrame()  # fallback
+            df = pd.DataFrame()
 
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
-        df = df.set_index('timestamp')
-        df.rename(columns={"Close": "price"}, inplace=True)
+        if not df.empty:
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df = df.set_index('timestamp')
+            df.rename(columns={"Close": "price"}, inplace=True)
 
     if not df.empty:
-        # Add moving average
         df['moving_avg'] = df['price'].rolling(window=5).mean()
-
-        st.line_chart(df[['price', 'moving_avg']])
 
         latest_price = df['price'].iloc[-1]
         previous_price = df['price'].iloc[-2] if len(df) > 1 else latest_price
-        price_delta = latest_price - previous_price
+        price_delta = round(latest_price - previous_price, 2)  # ✅ round to 2 decimals
 
+        # ⬆️ METRIC is displayed ABOVE the chart
         st.metric(
             label="Current Price",
             value=f"${latest_price:,.2f}",
-            delta=f"${price_delta:+.2f}"
+            delta=price_delta
         )
+
+        st.line_chart(df[['price', 'moving_avg']])
     else:
         st.warning("No data available for this timeframe.")
 
