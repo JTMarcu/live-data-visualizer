@@ -29,11 +29,6 @@ def fetch_company_name(symbol):
         return symbol  # fallback to symbol if fail
 
 def fetch_historical_data(symbol, period="1d", interval="5m"):
-    """
-    Fetch historical stock data from Yahoo Finance.
-    period: "1d", "5d", "1mo", "3mo", etc.
-    interval: "1m", "5m", "15m", "1h", "1d", etc.
-    """
     try:
         stock = yf.Ticker(symbol)
         hist = stock.history(period=period, interval=interval)
@@ -42,3 +37,11 @@ def fetch_historical_data(symbol, period="1d", interval="5m"):
         return hist[['timestamp', 'Close']]
     except Exception as e:
         raise RuntimeError(f"Failed to fetch historical data for {symbol}: {str(e)}")
+
+def fetch_previous_close(symbol):
+    try:
+        stock = yf.Ticker(symbol)
+        hist = stock.history(period="2d", interval="1d")
+        return hist['Close'].iloc[-2]  # Previous day's close
+    except Exception as e:
+        raise RuntimeError(f"Failed to fetch previous close for {symbol}: {str(e)}")
