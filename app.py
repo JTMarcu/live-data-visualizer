@@ -1,7 +1,7 @@
 # app.py
 
 import streamlit as st
-from utils.data_fetcher import fetch_stock_price, fetch_company_name
+from utils.data_fetcher import fetch_stock_price, fetch_company_name, fetch_historical_data
 from streamlit_autorefresh import st_autorefresh
 import pandas as pd
 import datetime
@@ -16,7 +16,7 @@ with st.sidebar:
 
     timeframe = st.selectbox(
         "Select timeframe to view:",
-        ("Last 1 Hour", "Last 1 Day", "Last 5 Days")
+        ("Last 1 Hour", "Last 1 Day", "Last 5 Days", "Last 1 Month", "Last 3 Months")
     )
 
     refresh_interval = st.selectbox(
@@ -89,12 +89,27 @@ def prepare_dataframe(data_list, timeframe_selection):
 
 # Display function
 def display_stock_data(symbol, company_name, timeframe_selection):
-    if st.session_state.stock_prices.get(symbol):
-        df = prepare_dataframe(st.session_state.stock_prices[symbol], timeframe_selection)
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    st.caption(f"Last Updated: {now}")
 
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        st.caption(f"Last Updated: {now}")
+    if timeframe_selection in ["Last 1 Hour", "Last 1 Day", "Last 5 Days"]:
+        # Use live collected data
+        if st.session_state.stock_prices.get(symbol):
+            df = prepare_dataframe(st.session_state.stock_prices[symbol], timeframe_selection)
+    else:
+        # Fetch full historical data
+        if timeframe_selection == "Last 1 Month":
+            df = fetch_historical_data(symbol, period="1mo", interval="1d")
+        elif timeframe_selection == "Last 3 Months":
+            df = fetch_historical_data(symbol, period="3mo", interval="1d")
+        else:
+            df = pd.DataFrame()  # fallback
 
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df = df.set_index('timestamp')
+        df.rename(columns={"Close": "price"}, inplace=True)
+
+    if not df.empty:
         # Add moving average
         df['moving_avg'] = df['price'].rolling(window=5).mean()
 
@@ -109,6 +124,8 @@ def display_stock_data(symbol, company_name, timeframe_selection):
             value=f"${latest_price:,.2f}",
             delta=f"${price_delta:+.2f}"
         )
+    else:
+        st.warning("No data available for this timeframe.")
 
 # Plot each stock
 if len(stock_symbols) == 1:
