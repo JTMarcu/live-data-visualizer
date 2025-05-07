@@ -125,13 +125,33 @@ def display_stock_data(symbol, company_name, timeframe_selection):
         st.metric(
             label="Current Price",
             value=f"${latest_price:,.2f}",
-            delta=price_delta
+            delta=""
         )
 
-        st.metric(
-            label="Day Change",
-            value=f"${daily_delta:+.2f} ({daily_percent_change:+.2f}%)"
-        )
+        # Build combined change line
+        if daily_delta >= 0:
+            day_arrow = "▲"
+            day_color = "green"
+        else:
+            day_arrow = "▼"
+            day_color = "red"
+
+        if price_delta >= 0:
+            instant_arrow = "▲"
+            instant_color = "green"
+        else:
+            instant_arrow = "▼"
+            instant_color = "red"
+
+        change_markdown = f"""
+        <div style='font-size:20px;'>
+            <span style='color:{day_color}; font-weight:bold;'>{day_arrow} ${daily_delta:+.2f} ({daily_percent_change:+.2f}%)</span>
+            &nbsp;&nbsp;
+            <span style='color:{instant_color}; font-weight:bold;'>{instant_arrow} {price_delta:+.2f}</span>
+        </div>
+        """
+
+        st.markdown(change_markdown, unsafe_allow_html=True)
 
         # Altair Chart
         base = alt.Chart(df.reset_index()).encode(
@@ -139,7 +159,7 @@ def display_stock_data(symbol, company_name, timeframe_selection):
         )
 
         price_line = base.mark_line(
-            color='blue',
+            color='yellow',
             strokeWidth=2
         ).encode(
             y=alt.Y('price:Q', scale=alt.Scale(zero=False)),
