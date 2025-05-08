@@ -4,6 +4,12 @@ A real-time stock price dashboard built with **Streamlit**, **Altair**, and a lo
 
 Fetches and displays live and historical stock data with dynamic charts.
 Auto-refreshes every few seconds for real-time monitoring.
+---
+
+<!-- Dashboard Screenshot -->
+<p align="center">
+  <img src="assets/dashboard-screenshot.png" alt="Real-Time Stock Dashboard Screenshot" width="700"/>
+</p>
 
 ---
 
