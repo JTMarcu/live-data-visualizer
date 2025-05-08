@@ -2,13 +2,17 @@
 
 import sys
 import os
+import pytest
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from utils.data_fetcher import fetch_live_data
+from utils.data_fetcher import fetch_stock_price
 
-def test_fetch_live_data_returns_dict():
-    """Test that fetch_live_data returns a dictionary with keys 'timestamp' and 'value'."""
-    data = fetch_live_data()
-    assert isinstance(data, dict)
-    assert "timestamp" in data
-    assert "value" in data
+def test_fetch_stock_price_returns_valid_data():
+    """Test that fetch_stock_price returns a dict with correct keys and types."""
+    result = fetch_stock_price(symbol="RIVN")  # You could use a very common stock
+    assert isinstance(result, dict), "Result should be a dictionary"
+    assert "timestamp" in result, "'timestamp' key missing"
+    assert "price" in result, "'price' key missing"
+    
+    assert isinstance(result["timestamp"], str), "'timestamp' should be a string"
+    assert isinstance(result["price"], (int, float)), "'price' should be a number"
