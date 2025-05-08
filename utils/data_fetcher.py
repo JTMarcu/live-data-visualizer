@@ -2,8 +2,9 @@
 
 import requests
 import os
-from dotenv import load_dotenv
+import pandas as pd
 import yfinance as yf
+from dotenv import load_dotenv
 import streamlit as st
 
 load_dotenv()
@@ -40,12 +41,36 @@ def fetch_historical_data(symbol, period="1d", interval="5m"):
             break
         if attempt < attempts - 1:
             import time
-            time.sleep(1)  # Retry after short wait
+            time.sleep(1)
     else:
         raise RuntimeError(f"Failed to fetch historical data for {symbol} after {attempts} attempts.")
 
     hist.reset_index(inplace=True)
-    hist['timestamp'] = hist['Datetime'] if 'Datetime' in hist else hist['Date']
+
+    if 'Datetime' in hist.columns:
+        hist = hist.rename(columns={"Datetime": "timestamp"})
+    elif 'Date' in hist.columns:
+        hist = hist.rename(columns={"Date": "timestamp"})
+
+    hist['timestamp'] = pd.to_datetime(hist['timestamp'])
+
+    # Only keep NYSE regular trading hours (Eastern Time)
+    hist['timestamp'] = hist['timestamp'].dt.tz_convert('US/Eastern')
+
+    # Detect market open and close (9:30 AM to 4:00 PM)
+    minutes = hist['timestamp'].dt.hour * 60 + hist['timestamp'].dt.minute
+    is_open_hours = (minutes >= 570) & (minutes <= 960)
+
+    # Drop pre-market, post-market, weekends, holidays
+    hist = hist[is_open_hours]
+
+    # BONUS: drop any days with no trading volume (i.e., fully closed)
+    if "Volume" in hist.columns:
+        hist = hist[hist["Volume"] > 0]
+
+    # Convert timestamps back to UTC
+    hist['timestamp'] = hist['timestamp'].dt.tz_convert('UTC')
+
     return hist[['timestamp', 'Close']]
 
 @st.cache_data(ttl=600)

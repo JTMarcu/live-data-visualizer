@@ -17,7 +17,7 @@ with st.sidebar:
 
     timeframe = st.selectbox(
         "Select timeframe to view:",
-        ("Last 1 Hour", "Last 1 Day", "Last 5 Days", "Last 1 Month", "Last 3 Months")
+        ("Last Hour", "Last Day", "Last Week", "Last Month", "Last 3 Months", "Last Year")
     )
 
     refresh_interval = st.selectbox(
@@ -76,27 +76,41 @@ def prepare_dataframe(data_list, timeframe_selection):
 
     now = pd.Timestamp.now(tz="UTC")
 
-    if timeframe_selection == "Last 1 Hour":
+    if timeframe_selection == "Last Hour":
         cutoff = now - pd.Timedelta(hours=1)
-    else:
+    elif timeframe_selection == "Last Day":
         cutoff = now - pd.Timedelta(days=1)
+    elif timeframe_selection == "Last Week":
+        cutoff = now - pd.Timedelta(days=7)
+    elif timeframe_selection == "Last Month":
+        cutoff = now - pd.Timedelta(days=30)
+    elif timeframe_selection == "Last 3 Months":
+        cutoff = now - pd.Timedelta(days=90)
+    elif timeframe_selection == "Last Year":
+        cutoff = now - pd.Timedelta(days=365)
+    else:
+        cutoff = now - pd.Timedelta(days=7)
 
     df = df[df.index >= cutoff]
+
     return df
 
 def get_dynamic_historical_data(symbol, timeframe_selection):
-    if timeframe_selection == "Last 1 Day":
+    if timeframe_selection == "Last Day":
         period = "1d"
         interval = "5m"
-    elif timeframe_selection == "Last 5 Days":
-        period = "5d"
+    elif timeframe_selection == "Last Week":
+        period = "7d"
         interval = "15m"
-    elif timeframe_selection == "Last 1 Month":
+    elif timeframe_selection == "Last Month":
         period = "1mo"
         interval = "1d"
     elif timeframe_selection == "Last 3 Months":
         period = "3mo"
         interval = "1d"
+    elif timeframe_selection == "Last Year":
+        period = "1y"
+        interval = "1wk"
     else:
         period = "1d"
         interval = "5m"
@@ -119,7 +133,7 @@ def display_stock_data(symbol, company_name, timeframe_selection):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     st.caption(f"Last Updated: {now}")
 
-    if timeframe_selection == "Last 1 Hour":
+    if timeframe_selection == "Last Hour":
         if st.session_state.stock_prices.get(symbol):
             df = prepare_dataframe(st.session_state.stock_prices[symbol], timeframe_selection)
         else:
@@ -128,24 +142,57 @@ def display_stock_data(symbol, company_name, timeframe_selection):
         df = get_dynamic_historical_data(symbol, timeframe_selection)
 
     if not df.empty:
-        df['moving_avg'] = df['price'].rolling(window=5).mean()
+        df_plot = df.dropna(subset=["price"])
 
-        latest_price = round(df['price'].iloc[-1], 2)
-        previous_price = round(df['price'].iloc[-2], 2) if len(df) > 1 else latest_price
+        if df_plot.empty:
+            st.warning("No valid data to plot.")
+            return
+
+        # ✨ Filter only regular NYSE market hours (9:30 AM - 4:00 PM Eastern)
+        try:
+            df_plot = df_plot.copy()
+            df_plot.index = df_plot.index.tz_convert('US/Eastern')
+            market_open = (df_plot.index.hour > 9) | ((df_plot.index.hour == 9) & (df_plot.index.minute >= 30))
+            market_close = (df_plot.index.hour < 16)
+            during_market_hours = market_open & market_close
+            df_plot = df_plot[during_market_hours]
+            df_plot.index = df_plot.index.tz_convert('UTC')  # Back to UTC first
+
+            # ✨ Now convert to local timezone for display
+            local_tz = datetime.datetime.now().astimezone().tzinfo
+            df_plot.index = df_plot.index.tz_convert(local_tz)
+        except Exception as e:
+            st.warning(f"Timezone conversion error: {e}")
+
+        if df_plot.empty:
+            st.warning("No market hours data to plot.")
+            return
+
+        # Create a clean x-axis label for Altair band scale
+        df_plot['time_label'] = df_plot.index.strftime('%b %d %H:%M')  # Example: "May 07 09:30"
+
+        # Calculate moving average
+        df_plot['moving_avg'] = df_plot['price'].rolling(window=5, min_periods=1).mean()
+        df_plot['date_only'] = df_plot.index.date
+
+        df_reset = df_plot.reset_index()
+        day_starts = df_reset.groupby('date_only').first().reset_index()
+
+        # Metrics
+        latest_price = round(df_plot['price'].iloc[-1], 2)
+        previous_price = round(df_plot['price'].iloc[-2], 2) if len(df_plot) > 1 else latest_price
         price_delta = round(latest_price - previous_price, 2)
 
         previous_close = st.session_state.previous_closes.get(symbol, latest_price)
         daily_delta = round(latest_price - previous_close, 2)
         daily_percent_change = round((daily_delta / previous_close) * 100, 2) if previous_close else 0
 
-        # Metrics
         st.metric(
             label="Current Price",
             value=f"${latest_price:,.2f}",
             delta=""
         )
 
-        # Changes
         day_arrow = "▲" if daily_delta >= 0 else "▼"
         day_color = "green" if daily_delta >= 0 else "red"
         instant_arrow = "▲" if price_delta >= 0 else "▼"
@@ -158,30 +205,44 @@ def display_stock_data(symbol, company_name, timeframe_selection):
             <span style='color:{instant_color}; font-weight:bold;'>{instant_arrow} {price_delta:+.2f}</span>
         </div>
         """
-
         st.markdown(change_markdown, unsafe_allow_html=True)
 
         # Altair Chart
-        base = alt.Chart(df.reset_index()).encode(
-            x=alt.X('timestamp:T', axis=alt.Axis(title=None))
+        base = alt.Chart(df_reset).encode(
+            x=alt.X('time_label:N', axis=alt.Axis(title="Time (Market Hours)"))
         )
 
         price_line = base.mark_line(
             color='yellow',
             strokeWidth=2
         ).encode(
-            y=alt.Y('price:Q', scale=alt.Scale(zero=False)),
-            tooltip=['timestamp:T', 'price:Q']
+            y=alt.Y('price:Q', title='Price ($)', scale=alt.Scale(zero=False)),
+            tooltip=[
+                alt.Tooltip('timestamp:T', title='Timestamp'),
+                alt.Tooltip('price:Q', title='Price ($)')
+            ]
         )
 
         moving_avg_line = base.mark_line(
             color='orange',
             strokeDash=[5, 5],
             strokeWidth=1.5,
-            opacity=0.6
+            opacity=0.7
         ).encode(
             y='moving_avg:Q',
-            tooltip=['timestamp:T', 'moving_avg:Q']
+            tooltip=[
+                alt.Tooltip('timestamp:T', title='Timestamp'),
+                alt.Tooltip('moving_avg:Q', title='Moving Avg ($)')
+            ]
+        )
+
+        # Separator lines for day starts (still based on real timestamp)
+        day_separators = alt.Chart(day_starts).mark_rule(
+            color='white',
+            strokeDash=[5, 5],
+            opacity=0.3
+        ).encode(
+            x=alt.X('timestamp:T')
         )
 
         combined_chart = (price_line + moving_avg_line).interactive()
