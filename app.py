@@ -23,7 +23,7 @@ with st.sidebar:
 
     refresh_interval = st.selectbox(
         "Refresh Interval (seconds):",
-        (5, 10, 30),
+        (10, 15, 30),
         index=1
     )
 
@@ -64,7 +64,8 @@ for symbol in stock_symbols:
     except Exception as e:
         st.error(f"Exception fetching {symbol}: {str(e)}")
 
-# Fetch historical data
+# Cache historical data
+@st.cache_data(ttl=600)  # Cache for 10 minutes
 def get_dynamic_historical_data(symbol, timeframe_selection):
     try:
         ticker = yf.Ticker(symbol)
@@ -107,7 +108,8 @@ def display_stock_data(symbol, company_name, timeframe_selection):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     st.caption(f"Last Updated: {now}")
 
-    df = get_dynamic_historical_data(symbol, timeframe_selection)
+    with st.spinner(f"Fetching {symbol} {timeframe_selection} data..."):
+        df = get_dynamic_historical_data(symbol, timeframe_selection)
 
     if not df.empty:
         df_plot = df.dropna(subset=["price"])

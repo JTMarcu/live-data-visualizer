@@ -1,98 +1,93 @@
-# Real-Time Data Dashboard (In Development)
+# 📈 Real-Time Stock Dashboard
 
-A Python-based real-time data dashboard that integrates with the Model Context Protocol (MCP) to fetch and visualize live data streams. This project showcases the seamless integration of LLMs with external data sources, providing dynamic insights through an interactive dashboard.
+A real-time stock price dashboard built with **Streamlit**, **Altair**, and a local **MCP server**.
 
-## Features
+Fetches and displays live and historical stock data with dynamic charts.
+Auto-refreshes every few seconds for real-time monitoring.
 
-* **Real-Time Data Visualization**: Stream and display live data updates.
-* **Stock Price Fetching**: Retrieve and visualize live stock prices for any symbol.
-* **MCP Integration**: Connects with MCP servers to fetch contextual data.
-* **Interactive UI**: User-friendly interface for data exploration.
-* **Modular Architecture**: Easily extendable components for scalability.
-* **One-Click Start**: Quickly launch both the MCP server and Streamlit dashboard with a single command.
+---
 
-## Technologies Used
+## 🚀 Features
 
-* **Frontend**: [Streamlit](https://streamlit.io/) for interactive dashboards.
-* **Backend**: Python with [FastAPI](https://fastapi.tiangolo.com/) for API development.
-* **Data Handling**: [Pandas](https://pandas.pydata.org/) for data manipulation.
-* **MCP Integration**: [mcp-python-sdk](https://github.com/modelcontextprotocol/python-sdk) for MCP client/server communication.
+* Real-time stock price updates via MCP server
+* Interactive Altair charts
+* Supports multiple timeframes:
 
-## Screenshots
+  * Today
+  * Last Week
+  * Last Month
+  * Last 3 Months
+  * Last Year
+* Local timezone adjustment for all timestamps
+* Moving average smoothing (5 periods)
+* Customizable refresh intervals (10s, 15s, 30s)
 
-*(Coming soon!)*
+---
 
-## Installation
+## 🛠 Project Structure
 
-1. **Clone the Repository**
-
-   ```bash
-   git clone https://github.com/JTMarcu/live-data-visualizer.git
-   cd live-data-visualizer
-   ```
-
-2. **Create a Virtual Environment**
-
-   ```bash
-   python -m venv venv
-   .\venv\Scripts\activate
-   ```
-
-3. **Install Dependencies**
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Configure Environment Variables**
-
-Create a `.env` file (or copy from `.env.example`) and set your MCP server URL:
-
-```bash
-MCP_SERVER_URL=http://localhost:8000
+```
+live-data-visualizer/
+├── app.py                # Main Streamlit app
+├── mcp_server/
+│   └── server.py         # MCP Server for stock price fetching
+├── utils/
+│   └── data_fetcher.py   # Functions for MCP and yfinance data
+├── tests/
+│   └── test_fetcher.py   # Unit tests
+├── setup_env.bat         # (Optional) Setup virtual environment
+├── start_dashboard.bat   # (Optional) Start both MCP server + Streamlit app
+├── requirements.txt      # Python dependencies
+├── README.md             # Project overview (this file)
+└── LICENSE               # MIT License
 ```
 
-## Quick Start
+---
 
-To launch the MCP server and Streamlit dashboard together, run:
+## ⚙️ Installation & Running
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/yourusername/live-data-visualizer.git
+cd live-data-visualizer
+```
+
+---
+
+### 2. Setup environment
+
+Install requirements manually:
+
+```bash
+pip install -r requirements.txt
+```
+
+Or use the automatic setup script on Windows:
+
+```bash
+setup_env.bat
+```
+
+---
+
+### 3. Start the Dashboard
+
+Recommended: Use the start script:
 
 ```bash
 start_dashboard.bat
 ```
 
-This will:
-
-* Start the MCP server on `localhost:8000`
-* Start the Streamlit app on `localhost:8501`
-* Open two terminal windows automatically
-
-✅ Make sure to activate your virtual environment and install dependencies first!
-
-## Usage
-
-Once the application is running:
-
-1. Navigate to [http://localhost:8501](http://localhost:8501) in your web browser.
-2. Enter a stock symbol in the sidebar (e.g., `AAPL`) to fetch live stock prices.
-3. Monitor live updates and explore the dashboard.
-
-## Testing
-
-To run the test suite:
+Or manually:
 
 ```bash
-pytest tests/
+python mcp_server/server.py
+streamlit run app.py
 ```
 
-✅ Ensure your MCP server is running before executing tests.
+## 📜 License
 
-## License
+This project is licensed under the MIT License.
 
-This project is licensed under the [MIT License](LICENSE).
-
-## Acknowledgements
-
-* [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
-* [Streamlit](https://streamlit.io/)
-* [FastAPI](https://fastapi.tiangolo.com/)
-* [Pandas](https://pandas.pydata.org/)
+---
