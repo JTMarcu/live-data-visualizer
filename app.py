@@ -169,8 +169,11 @@ def display_stock_data(symbol, company_name, timeframe_selection):
             st.warning("No market hours data to plot.")
             return
 
-        # Create clean x-axis labels
-        df_plot['time_label'] = df_plot.index.strftime('%b %d %H:%M')
+        # Create clean x-axis labels based on timeframe
+        if timeframe_selection in ["Last Month", "Last 3 Months", "Last Year"]:
+            df_plot['time_label'] = df_plot.index.strftime('%b %d')  # e.g., "Apr 01"
+        else:
+            df_plot['time_label'] = df_plot.index.strftime('%b %d %H:%M')  # e.g., "Apr 29 09:30"
 
         # Calculate moving average
         df_plot['moving_avg'] = df_plot['price'].rolling(window=5, min_periods=1).mean()
