@@ -1,4 +1,5 @@
 streamlit
+streamlit-autorefresh
 fastapi
 requests
 python-dotenv
