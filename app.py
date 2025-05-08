@@ -148,17 +148,18 @@ def display_stock_data(symbol, company_name, timeframe_selection):
             st.warning("No valid data to plot.")
             return
 
-        # ✨ Filter only regular NYSE market hours (9:30 AM - 4:00 PM Eastern)
+        # ✨ Filter only regular NYSE market hours for intraday data
         try:
-            df_plot = df_plot.copy()
-            df_plot.index = df_plot.index.tz_convert('US/Eastern')
-            market_open = (df_plot.index.hour > 9) | ((df_plot.index.hour == 9) & (df_plot.index.minute >= 30))
-            market_close = (df_plot.index.hour < 16)
-            during_market_hours = market_open & market_close
-            df_plot = df_plot[during_market_hours]
-            df_plot.index = df_plot.index.tz_convert('UTC')  # Back to UTC first
+            if timeframe_selection in ["Last Hour", "Last Day", "Last Week"]:
+                df_plot = df_plot.copy()
+                df_plot.index = df_plot.index.tz_convert('US/Eastern')
+                market_open = (df_plot.index.hour > 9) | ((df_plot.index.hour == 9) & (df_plot.index.minute >= 30))
+                market_close = (df_plot.index.hour < 16)
+                during_market_hours = market_open & market_close
+                df_plot = df_plot[during_market_hours]
+                df_plot.index = df_plot.index.tz_convert('UTC')
 
-            # ✨ Now convert to local timezone for display
+            # After filtering, convert timestamps to local timezone for display
             local_tz = datetime.datetime.now().astimezone().tzinfo
             df_plot.index = df_plot.index.tz_convert(local_tz)
         except Exception as e:
@@ -168,8 +169,8 @@ def display_stock_data(symbol, company_name, timeframe_selection):
             st.warning("No market hours data to plot.")
             return
 
-        # Create a clean x-axis label for Altair band scale
-        df_plot['time_label'] = df_plot.index.strftime('%b %d %H:%M')  # Example: "May 07 09:30"
+        # Create clean x-axis labels
+        df_plot['time_label'] = df_plot.index.strftime('%b %d %H:%M')
 
         # Calculate moving average
         df_plot['moving_avg'] = df_plot['price'].rolling(window=5, min_periods=1).mean()
@@ -207,9 +208,15 @@ def display_stock_data(symbol, company_name, timeframe_selection):
         """
         st.markdown(change_markdown, unsafe_allow_html=True)
 
+        # ✨ Dynamic x-tick adjustment
+        if timeframe_selection in ["Last Month", "Last 3 Months", "Last Year"]:
+            x_axis = alt.X('time_label:N', axis=alt.Axis(title="Time (Local)", labelAngle=-45, labelOverlap=True, tickMinStep=5))
+        else:
+            x_axis = alt.X('time_label:N', axis=alt.Axis(title="Time (Local)", labelAngle=-45))
+
         # Altair Chart
         base = alt.Chart(df_reset).encode(
-            x=alt.X('time_label:N', axis=alt.Axis(title="Time (Market Hours)"))
+            x=x_axis
         )
 
         price_line = base.mark_line(
@@ -236,7 +243,6 @@ def display_stock_data(symbol, company_name, timeframe_selection):
             ]
         )
 
-        # Separator lines for day starts (still based on real timestamp)
         day_separators = alt.Chart(day_starts).mark_rule(
             color='white',
             strokeDash=[5, 5],
