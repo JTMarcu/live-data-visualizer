@@ -7,7 +7,7 @@ Auto-refreshes every few seconds for real-time monitoring.
 ---
 
 <!-- Dashboard Screenshot -->
-![Real-Time Stock Dashboard Screenshot](screenshots/dashboard-screenshot.png)
+![Real-Time Stock Dashboard Screenshot](screenshots/live-dash-demo.png)
 
 ---
 
