@@ -78,37 +78,54 @@ def prepare_dataframe(data_list, timeframe_selection):
 
     if timeframe_selection == "Last 1 Hour":
         cutoff = now - pd.Timedelta(hours=1)
-    elif timeframe_selection == "Last 1 Day":
-        cutoff = now - pd.Timedelta(days=1)
-    elif timeframe_selection == "Last 5 Days":
-        cutoff = now - pd.Timedelta(days=5)
     else:
-        cutoff = now - pd.Timedelta(days=5)
+        cutoff = now - pd.Timedelta(days=1)
 
     df = df[df.index >= cutoff]
     return df
+
+def get_dynamic_historical_data(symbol, timeframe_selection):
+    if timeframe_selection == "Last 1 Day":
+        period = "1d"
+        interval = "5m"
+    elif timeframe_selection == "Last 5 Days":
+        period = "5d"
+        interval = "15m"
+    elif timeframe_selection == "Last 1 Month":
+        period = "1mo"
+        interval = "1d"
+    elif timeframe_selection == "Last 3 Months":
+        period = "3mo"
+        interval = "1d"
+    else:
+        period = "1d"
+        interval = "5m"
+
+    with st.spinner(f"Fetching {symbol} historical data..."):
+        try:
+            df = fetch_historical_data(symbol, period=period, interval=interval)
+            if df.empty:
+                st.warning(f"No historical data available for {symbol}.")
+                return pd.DataFrame()
+            df['timestamp'] = pd.to_datetime(df['timestamp'])
+            df = df.set_index('timestamp')
+            df.rename(columns={"Close": "price"}, inplace=True)
+            return df
+        except Exception as e:
+            st.error(f"Failed to fetch historical data for {symbol}: {e}")
+            return pd.DataFrame()
 
 def display_stock_data(symbol, company_name, timeframe_selection):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     st.caption(f"Last Updated: {now}")
 
-    if timeframe_selection in ["Last 1 Hour", "Last 1 Day", "Last 5 Days"]:
+    if timeframe_selection == "Last 1 Hour":
         if st.session_state.stock_prices.get(symbol):
             df = prepare_dataframe(st.session_state.stock_prices[symbol], timeframe_selection)
         else:
             df = pd.DataFrame()
     else:
-        if timeframe_selection == "Last 1 Month":
-            df = fetch_historical_data(symbol, period="1mo", interval="1d")
-        elif timeframe_selection == "Last 3 Months":
-            df = fetch_historical_data(symbol, period="3mo", interval="1d")
-        else:
-            df = pd.DataFrame()
-
-        if not df.empty:
-            df['timestamp'] = pd.to_datetime(df['timestamp'])
-            df = df.set_index('timestamp')
-            df.rename(columns={"Close": "price"}, inplace=True)
+        df = get_dynamic_historical_data(symbol, timeframe_selection)
 
     if not df.empty:
         df['moving_avg'] = df['price'].rolling(window=5).mean()
@@ -128,20 +145,11 @@ def display_stock_data(symbol, company_name, timeframe_selection):
             delta=""
         )
 
-        # Build combined change line
-        if daily_delta >= 0:
-            day_arrow = "▲"
-            day_color = "green"
-        else:
-            day_arrow = "▼"
-            day_color = "red"
-
-        if price_delta >= 0:
-            instant_arrow = "▲"
-            instant_color = "green"
-        else:
-            instant_arrow = "▼"
-            instant_color = "red"
+        # Changes
+        day_arrow = "▲" if daily_delta >= 0 else "▼"
+        day_color = "green" if daily_delta >= 0 else "red"
+        instant_arrow = "▲" if price_delta >= 0 else "▼"
+        instant_color = "green" if price_delta >= 0 else "red"
 
         change_markdown = f"""
         <div style='font-size:20px;'>

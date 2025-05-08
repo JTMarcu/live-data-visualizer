@@ -27,18 +27,23 @@ def fetch_company_name(symbol):
         info = stock.info
         return info.get("shortName", symbol)
     except Exception:
-        return symbol  # fallback to symbol if fail
+        return symbol
 
-@st.cache_data(ttl=600)  # Cache for 10 minutes (you can adjust if you want)
+@st.cache_data(ttl=600)
 def fetch_historical_data(symbol, period="1d", interval="5m"):
-    """
-    Fetch historical stock data from Yahoo Finance.
-    period: "1d", "5d", "1mo", "3mo", etc.
-    interval: "1m", "5m", "15m", "1h", "1d", etc.
-    """
-    import yfinance as yf
     stock = yf.Ticker(symbol)
-    hist = stock.history(period=period, interval=interval)
+
+    attempts = 2
+    for attempt in range(attempts):
+        hist = stock.history(period=period, interval=interval)
+        if not hist.empty:
+            break
+        if attempt < attempts - 1:
+            import time
+            time.sleep(1)  # Retry after short wait
+    else:
+        raise RuntimeError(f"Failed to fetch historical data for {symbol} after {attempts} attempts.")
+
     hist.reset_index(inplace=True)
     hist['timestamp'] = hist['Datetime'] if 'Datetime' in hist else hist['Date']
     return hist[['timestamp', 'Close']]
