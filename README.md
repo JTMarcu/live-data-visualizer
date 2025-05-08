@@ -8,7 +8,7 @@ Auto-refreshes every few seconds for real-time monitoring.
 
 <!-- Dashboard Screenshot -->
 <p align="center">
-  <img src="assets/dashboard-screenshot.png" alt="Real-Time Stock Dashboard Screenshot" width="700"/>
+  <img src="dashboard-screenshot.png" alt="Real-Time Stock Dashboard Screenshot" width="700"/>
 </p>
 
 ---
