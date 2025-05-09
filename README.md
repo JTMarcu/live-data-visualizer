@@ -1,73 +1,75 @@
-# 📈 Real-Time Stock Dashboard
+# 📊 Real-Time Stock Dashboard
 
-A real-time stock price dashboard built with **Streamlit**, **Altair**, and a local **MCP server**.
+A sleek and interactive **real-time dashboard** for monitoring live stock prices, historical trends, and financial news. Built using **Streamlit**, **Altair**, and a local **MCP server**.
 
-Fetches and displays live and historical stock data with dynamic charts.
-Auto-refreshes every few seconds for real-time monitoring.
+This project demonstrates how LLM-compatible servers (via Model Context Protocol) can power real-time visualizations.
+
 ---
 
-<!-- Dashboard Screenshot -->
-![Real-Time Stock Dashboard Screenshot](screenshots/live-dash-demo.png)
+![Dashboard Screenshot](screenshots/live-dash-demo.png)
 
 ---
 
 ## 🚀 Features
 
-* Real-time stock price updates via MCP server
-* Interactive Altair charts
-* Supports multiple timeframes:
-
-  * Today
-  * Last Week
-  * Last Month
-  * Last 3 Months
-  * Last Year
-* Local timezone adjustment for all timestamps
-* Moving average smoothing (5 periods)
-* Customizable refresh intervals (10s, 15s, 30s)
+✅ Live stock price updates (auto-refreshing)<br>
+✅ Interactive Altair charts with time-based zoom<br>
+✅ Historical stock performance across multiple timeframes:
+  - Today
+  - Last Week
+  - Last Month
+  - Last 3 Months
+  - Last Year  
+✅ Local timezone conversion for all charts<br>
+✅ 5-period moving average overlay<br>
+✅ Weather widget + latest news headlines<br>
+✅ Customizable refresh interval (10s, 15s, 30s)
 
 ---
 
-## 🛠 Project Structure
+## 📁 Project Structure
 
 ```
+
 live-data-visualizer/
-├── app.py                # Main Streamlit app
-├── mcp_server/
-│   └── server.py         # MCP Server for stock price fetching
+├── app.py                  # Main Streamlit app
+├── mcp\_server/
+│   └── server.py           # MCP server serving stock price tool
 ├── utils/
-│   └── data_fetcher.py   # Functions for MCP and yfinance data
+│   └── data\_fetcher.py     # API requests and data helpers
 ├── tests/
-│   └── test_fetcher.py   # Unit tests
-├── setup_env.bat         # (Optional) Setup virtual environment
-├── start_dashboard.bat   # (Optional) Start both MCP server + Streamlit app
-├── requirements.txt      # Python dependencies
-├── README.md             # Project overview (this file)
-└── LICENSE               # MIT License
-```
+│   └── test\_fetcher.py     # Unit test for data fetch logic
+├── screenshots/
+│   └── live-dash-demo.png  # UI preview
+├── setup\_env.bat           # (Windows) Virtualenv + install helper
+├── start\_dashboard.bat     # (Windows) Start MCP + Streamlit app
+├── requirements.txt        # Required Python packages
+└── README.md               # You’re here!
+
+````
 
 ---
 
-## ⚙️ Installation & Running
+## ⚙️ Getting Started
 
-### 1. Clone the repository
+### 1. Clone the repo
 
 ```bash
 git clone https://github.com/yourusername/live-data-visualizer.git
 cd live-data-visualizer
-```
+````
 
 ---
 
-### 2. Setup environment
+### 2. Install dependencies
 
-Install requirements manually:
+Manual:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Or use the automatic setup script on Windows:
+Or (Windows only):
 
 ```bash
 setup_env.bat
@@ -75,23 +77,38 @@ setup_env.bat
 
 ---
 
-### 3. Start the Dashboard
+### 3. Run the Dashboard
 
-Recommended: Use the start script:
+Option A — One-click launch (Windows):
 
 ```bash
 start_dashboard.bat
 ```
 
-Or manually:
+Option B — Manual:
 
 ```bash
 python mcp_server/server.py
 streamlit run app.py
 ```
 
-## 📜 License
+---
 
-This project is licensed under the MIT License.
+## 🔐 Environment Variables
+
+Create a `.env` file in the root directory for custom configuration:
+
+```
+MCP_SERVER_URL=http://localhost:8000
+WEATHER=your_openweather_api_key
+```
 
 ---
+
+## 📃 License
+
+MIT License
+Built using [Streamlit](https://streamlit.io), [FastAPI](https://fastapi.tiangolo.com), and [MCP](https://modelcontextprotocol.io)
+
+![MIT License](https://img.shields.io/badge/license-MIT-green?style=flat-square)
+![Built with Streamlit](https://img.shields.io/badge/Built%20with-Streamlit-ff4b4b?style=flat-square)
