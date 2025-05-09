@@ -176,6 +176,5 @@ def display_stock_dashboard(stock_symbols):
                     symbol = stock_symbols[i + idx]
                     company_name = st.session_state.company_names.get(symbol, symbol)
                     with cols[idx]:
-                        st.markdown(f"<div style='font-size:20px; font-weight:bold;'>Live Stock Price</div>", unsafe_allow_html=True)
-                        st.markdown(f"<div style='font-size:16px; color:gray;'>{company_name}</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='font-size:20px; font-weight:bold;'>{company_name}</div>", unsafe_allow_html=True)
                         display_stock_data(symbol, company_name, timeframe)
