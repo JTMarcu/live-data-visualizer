@@ -44,10 +44,11 @@ def get_dynamic_historical_data(symbol, timeframe_selection):
         st.error(f"Failed to fetch historical data for {symbol}: {e}")
         return pd.DataFrame()
 
-def display_stock_dashboard(stock_symbols):
+def display_stock_dashboard(stock_symbols, key_suffix=""):
     timeframe = st.selectbox(
         "Select timeframe to view:",
-        ("Today", "Last Week", "Last Month", "Last 3 Months", "Last Year")
+        ("Today", "Last Week", "Last Month", "Last 3 Months", "Last Year"),
+        key=f"timeframe_select_{'_'.join(stock_symbols)}_{key_suffix}"
     )
 
     if "stock_prices" not in st.session_state:
@@ -120,7 +121,6 @@ def display_stock_dashboard(stock_symbols):
                 df_plot['time_label'] = df_plot.index.strftime('%b %d %H:%M')
 
             df_plot['moving_avg'] = df_plot['price'].rolling(window=5, min_periods=1).mean()
-
             df_reset = df_plot.reset_index()
 
             latest_price = round(df_plot['price'].iloc[-1], 2)
@@ -156,7 +156,6 @@ def display_stock_dashboard(stock_symbols):
             )
 
             combined_chart = (price_line + moving_avg_line).interactive()
-
             st.altair_chart(combined_chart, use_container_width=True)
 
         else:
