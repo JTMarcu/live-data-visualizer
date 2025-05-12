@@ -83,6 +83,8 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
 
     def display_stock_data(symbol, company_name, timeframe_selection):
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Only show last updated timestamp — no repeated headers
         st.caption(f"Last Updated: {now}")
 
         with st.spinner(f"Fetching {symbol} {timeframe_selection} data..."):
@@ -95,7 +97,7 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
                 st.warning("No valid data to plot.")
                 return
 
-            # --- Market hours filter ---
+            # Market hours filtering
             try:
                 if timeframe_selection in ["Today", "Last Week"]:
                     df_plot = df_plot.copy()
@@ -106,7 +108,6 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
                     df_plot = df_plot[during_market_hours]
                     df_plot.index = df_plot.index.tz_convert('UTC')
 
-                # Convert to local timezone
                 local_tz = datetime.datetime.now().astimezone().tzinfo
                 df_plot.index = df_plot.index.tz_convert(local_tz)
 
@@ -117,21 +118,20 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
                 st.warning("No market hours data to plot.")
                 return
 
-            # --- Time label formatting ---
+            # Time labels
             if timeframe_selection in ["Last Month", "Last 3 Months", "Last Year"]:
                 df_plot['time_label'] = df_plot.index.strftime('%b %d')
             else:
                 df_plot['time_label'] = df_plot.index.strftime('%b %d %H:%M')
 
-            # --- Moving average ---
             df_plot['moving_avg'] = df_plot['price'].rolling(window=5, min_periods=1).mean()
             df_reset = df_plot.reset_index()
 
-            # --- Price calculations ---
+            # Price calculations
             latest_price = round(df_plot['price'].iloc[-1], 2)
             first_price = round(df_plot['price'].iloc[0], 2)
 
-            # Change over timeframe
+            # Timeframe change
             timeframe_delta = round(latest_price - first_price, 2)
             timeframe_percent = round((timeframe_delta / first_price) * 100, 2) if first_price else 0
             timeframe_color = "green" if timeframe_delta >= 0 else "red"
@@ -155,28 +155,17 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
             except Exception as e:
                 st.warning(f"Could not fetch previous close for {symbol}: {e}")
 
-            # --- Display price and changes ---
-            st.markdown(f"""
-            <div style='font-size:24px; font-weight:bold; color:white;'>${latest_price:,.2f}</div>
-            <div style='font-size:16px; color:{daily_color};'>
-                Since Open: {daily_delta:+.2f} ({daily_percent:+.2f}%)
-            </div>
-            """, unsafe_allow_html=True)
+            # Display latest price and changes
+            st.markdown(f"<div style='font-size:24px; font-weight:bold; color:white;'>${latest_price:,.2f}</div>", unsafe_allow_html=True)
 
             if prev_close_delta is not None:
-                st.markdown(f"""
-                <div style='font-size:16px; color:{prev_close_color};'>
-                    Since Previous Close: {prev_close_delta:+.2f} ({prev_close_percent:+.2f}%)
-                </div>
-                """, unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:16px; color:{prev_close_color};'>Since Previous Close: {prev_close_delta:+.2f} ({prev_close_percent:+.2f}%)</div>", unsafe_allow_html=True)
 
-            st.markdown(f"""
-            <div style='font-size:16px; color:{timeframe_color};'>
-                {timeframe_selection}: {timeframe_delta:+.2f} ({timeframe_percent:+.2f}%)
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(f"<div style='font-size:16px; color:{daily_color};'>Since Open: {daily_delta:+.2f} ({daily_percent:+.2f}%)</div>", unsafe_allow_html=True)
 
-            # --- Chart ---
+            st.markdown(f"<div style='font-size:16px; color:{timeframe_color};'>{timeframe_selection}: {timeframe_delta:+.2f} ({timeframe_percent:+.2f}%)</div>", unsafe_allow_html=True)
+
+            # Altair chart
             x_axis = alt.X('time_label:N', axis=alt.Axis(title="Time (Local)", labelAngle=-45))
             base = alt.Chart(df_reset).encode(x=x_axis)
 
@@ -189,10 +178,17 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
             )
 
             moving_avg_line = base.mark_line(
-                color='orange', strokeDash=[5, 5], opacity=0.7
-            ).encode(y='moving_avg:Q')
+                color='orange',
+                strokeDash=[5, 5],
+                opacity=0.7
+            ).encode(
+                y='moving_avg:Q'
+            )
 
-            combined_chart = (price_line + moving_avg_line).interactive()
+            combined_chart = (price_line + moving_avg_line).properties(
+                title="Price & 5-Period Moving Avg"
+            ).interactive()
+
             st.altair_chart(combined_chart, use_container_width=True)
 
         else:
