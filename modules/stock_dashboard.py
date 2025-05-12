@@ -115,6 +115,7 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
                 st.warning("No market hours data to plot.")
                 return
 
+            # Time label formatting
             if timeframe_selection in ["Last Month", "Last 3 Months", "Last Year"]:
                 df_plot['time_label'] = df_plot.index.strftime('%b %d')
             else:
@@ -123,37 +124,42 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
             df_plot['moving_avg'] = df_plot['price'].rolling(window=5, min_periods=1).mean()
             df_reset = df_plot.reset_index()
 
+            # Price changes
             latest_price = round(df_plot['price'].iloc[-1], 2)
+            first_price = round(df_plot['price'].iloc[0], 2)
+
+            timeframe_delta = round(latest_price - first_price, 2)
+            timeframe_percent = round((timeframe_delta / first_price) * 100, 2) if first_price else 0
+            timeframe_color = "green" if timeframe_delta >= 0 else "red"
+
             opening_price = st.session_state.opening_prices.get(symbol, latest_price)
             daily_delta = round(latest_price - opening_price, 2)
-            daily_percent_change = round((daily_delta / opening_price) * 100, 2) if opening_price else 0
+            daily_percent = round((daily_delta / opening_price) * 100, 2) if opening_price else 0
+            daily_color = "green" if daily_delta >= 0 else "red"
 
-            color = "green" if daily_delta >= 0 else "red"
-
+            # Display price and change info
             st.markdown(f"""
             <div style='font-size:24px; font-weight:bold; color:white;'>${latest_price:,.2f}</div>
-            <div style='font-size:18px; font-weight:bold; color:{color};'>${daily_delta:+.2f} ({daily_percent_change:+.2f}%)</div>
+            <div style='font-size:16px; color:{daily_color};'>
+                Market Open: {daily_delta:+.2f} ({daily_percent:+.2f}%)
+            </div>
+            <div style='font-size:16px; color:{timeframe_color};'>
+                {timeframe_selection}: {timeframe_delta:+.2f} ({timeframe_percent:+.2f}%)
+            </div>
             """, unsafe_allow_html=True)
 
+            # Plot
             x_axis = alt.X('time_label:N', axis=alt.Axis(title="Time (Local)", labelAngle=-45))
-
             base = alt.Chart(df_reset).encode(x=x_axis)
 
-            price_line = base.mark_line(
-                color='yellow',
-                strokeWidth=2
-            ).encode(
+            price_line = base.mark_line(color='yellow', strokeWidth=2).encode(
                 y=alt.Y('price:Q', title='Price ($)', scale=alt.Scale(zero=False)),
                 tooltip=[alt.Tooltip('timestamp:T', title='Timestamp'), alt.Tooltip('price:Q', title='Price ($)')]
             )
 
             moving_avg_line = base.mark_line(
-                color='orange',
-                strokeDash=[5, 5],
-                opacity=0.7
-            ).encode(
-                y='moving_avg:Q'
-            )
+                color='orange', strokeDash=[5, 5], opacity=0.7
+            ).encode(y='moving_avg:Q')
 
             combined_chart = (price_line + moving_avg_line).interactive()
             st.altair_chart(combined_chart, use_container_width=True)
