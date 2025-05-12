@@ -95,6 +95,7 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
                 st.warning("No valid data to plot.")
                 return
 
+            # --- Market hours filter ---
             try:
                 if timeframe_selection in ["Today", "Last Week"]:
                     df_plot = df_plot.copy()
@@ -105,6 +106,7 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
                     df_plot = df_plot[during_market_hours]
                     df_plot.index = df_plot.index.tz_convert('UTC')
 
+                # Convert to local timezone
                 local_tz = datetime.datetime.now().astimezone().tzinfo
                 df_plot.index = df_plot.index.tz_convert(local_tz)
 
@@ -115,46 +117,75 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
                 st.warning("No market hours data to plot.")
                 return
 
-            # Time label formatting
+            # --- Time label formatting ---
             if timeframe_selection in ["Last Month", "Last 3 Months", "Last Year"]:
                 df_plot['time_label'] = df_plot.index.strftime('%b %d')
             else:
                 df_plot['time_label'] = df_plot.index.strftime('%b %d %H:%M')
 
+            # --- Moving average ---
             df_plot['moving_avg'] = df_plot['price'].rolling(window=5, min_periods=1).mean()
             df_reset = df_plot.reset_index()
 
-            # Price changes
+            # --- Price calculations ---
             latest_price = round(df_plot['price'].iloc[-1], 2)
             first_price = round(df_plot['price'].iloc[0], 2)
 
+            # Change over timeframe
             timeframe_delta = round(latest_price - first_price, 2)
             timeframe_percent = round((timeframe_delta / first_price) * 100, 2) if first_price else 0
             timeframe_color = "green" if timeframe_delta >= 0 else "red"
 
+            # Since today's open
             opening_price = st.session_state.opening_prices.get(symbol, latest_price)
             daily_delta = round(latest_price - opening_price, 2)
             daily_percent = round((daily_delta / opening_price) * 100, 2) if opening_price else 0
             daily_color = "green" if daily_delta >= 0 else "red"
 
-            # Display price and change info
+            # Since previous close
+            prev_close = None
+            prev_close_delta = None
+            try:
+                hist_daily = yf.Ticker(symbol).history(period="2d", interval="1d")
+                if len(hist_daily) >= 2:
+                    prev_close = round(hist_daily["Close"].iloc[-2], 2)
+                    prev_close_delta = round(latest_price - prev_close, 2)
+                    prev_close_percent = round((prev_close_delta / prev_close) * 100, 2) if prev_close else 0
+                    prev_close_color = "green" if prev_close_delta >= 0 else "red"
+            except Exception as e:
+                st.warning(f"Could not fetch previous close for {symbol}: {e}")
+
+            # --- Display price and changes ---
             st.markdown(f"""
             <div style='font-size:24px; font-weight:bold; color:white;'>${latest_price:,.2f}</div>
             <div style='font-size:16px; color:{daily_color};'>
-                Market Open: {daily_delta:+.2f} ({daily_percent:+.2f}%)
+                Since Open: {daily_delta:+.2f} ({daily_percent:+.2f}%)
             </div>
+            """, unsafe_allow_html=True)
+
+            if prev_close_delta is not None:
+                st.markdown(f"""
+                <div style='font-size:16px; color:{prev_close_color};'>
+                    Since Previous Close: {prev_close_delta:+.2f} ({prev_close_percent:+.2f}%)
+                </div>
+                """, unsafe_allow_html=True)
+
+            st.markdown(f"""
             <div style='font-size:16px; color:{timeframe_color};'>
                 {timeframe_selection}: {timeframe_delta:+.2f} ({timeframe_percent:+.2f}%)
             </div>
             """, unsafe_allow_html=True)
 
-            # Plot
+            # --- Chart ---
             x_axis = alt.X('time_label:N', axis=alt.Axis(title="Time (Local)", labelAngle=-45))
             base = alt.Chart(df_reset).encode(x=x_axis)
 
             price_line = base.mark_line(color='yellow', strokeWidth=2).encode(
                 y=alt.Y('price:Q', title='Price ($)', scale=alt.Scale(zero=False)),
-                tooltip=[alt.Tooltip('timestamp:T', title='Timestamp'), alt.Tooltip('price:Q', title='Price ($)')]
+                tooltip=[
+                    alt.Tooltip('timestamp:T', title='Timestamp'),
+                    alt.Tooltip('price:Q', title='Price ($)')
+                ]
             )
 
             moving_avg_line = base.mark_line(
