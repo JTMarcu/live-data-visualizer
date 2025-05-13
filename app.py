@@ -5,9 +5,10 @@ from modules.stock_dashboard import display_stock_dashboard
 from utils.data_fetcher import fetch_weather, fetch_stock_news
 from streamlit_autorefresh import st_autorefresh
 
+# --- Page Config ---
 st.set_page_config(page_title="Real-Time Dashboard", layout="wide")
 
-# Sidebar
+# --- Sidebar ---
 with st.sidebar:
     st.header("Settings")
 
@@ -24,10 +25,10 @@ with st.sidebar:
     st.subheader("Auto Refresh")
     refresh_interval = st.selectbox("Interval (seconds):", (10, 15, 30), index=1)
 
-# Auto-refresh trigger
+# --- Auto Refresh ---
 count = st_autorefresh(interval=refresh_interval * 1000, key="datarefresh")
 
-# Tab layout
+# --- Tabs Layout ---
 tabs = st.tabs([
     "📊 Live Dashboard",
     "📈 Stocks",
@@ -35,14 +36,14 @@ tabs = st.tabs([
     "📰 News"
 ])
 
-# Live Dashboard Tab
+# --- Live Dashboard ---
 with tabs[0]:
     cols = st.columns([2, 1])
 
-    with cols[0]:  # Left: Stocks
+    with cols[0]:
         display_stock_dashboard(stock_symbols, key_suffix="live")
 
-    with cols[1]:  # Right: Weather + News
+    with cols[1]:
         try:
             weather = fetch_weather(city)
             st.subheader(f"Weather in {weather['city']}")
@@ -53,7 +54,7 @@ with tabs[0]:
             st.error(f"Weather error: {e}")
 
         for symbol in stock_symbols:
-            st.subheader(f"📰 News for {symbol}")
+            st.subheader(f"News for {symbol}")
             try:
                 news = fetch_stock_news(symbol)
                 for article in news:
@@ -61,11 +62,11 @@ with tabs[0]:
             except Exception as e:
                 st.warning(f"Failed to fetch news for {symbol}: {e}")
 
-# Stocks Tab
+# --- Stocks Tab ---
 with tabs[1]:
     display_stock_dashboard(stock_symbols, key_suffix="stocks")
 
-# Weather Tab
+# --- Weather Tab ---
 with tabs[2]:
     try:
         weather = fetch_weather(city)
@@ -76,10 +77,10 @@ with tabs[2]:
     except Exception as e:
         st.error(f"Weather error: {e}")
 
-# News Tab
+# --- News Tab ---
 with tabs[3]:
     for symbol in stock_symbols:
-        st.subheader(f"📰 News for {symbol}")
+        st.subheader(f"News for {symbol}")
         try:
             news = fetch_stock_news(symbol)
             for article in news:
