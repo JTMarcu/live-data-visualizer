@@ -60,11 +60,14 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
     if "opening_prices" not in st.session_state:
         st.session_state.opening_prices = {}
 
+    # Clear history if stock list changes
     if st.session_state.last_stock_symbols != stock_symbols:
         st.session_state.stock_prices = {symbol: [] for symbol in stock_symbols}
         st.session_state.last_stock_symbols = stock_symbols
         st.session_state.company_names = {}
         st.session_state.opening_prices = {}
+
+    MAX_HISTORY = 50
 
     for symbol in stock_symbols:
         try:
@@ -74,6 +77,8 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
                     "timestamp": stock_result["timestamp"],
                     "price": stock_result["price"]
                 })
+                st.session_state.stock_prices[symbol] = st.session_state.stock_prices[symbol][-MAX_HISTORY:]
+
                 if symbol not in st.session_state.company_names:
                     st.session_state.company_names[symbol] = fetch_company_name(symbol)
                 if symbol not in st.session_state.opening_prices:
@@ -83,8 +88,6 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
 
     def display_stock_data(symbol, company_name, timeframe_selection):
         now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        # Only show last updated timestamp — no repeated headers
         st.caption(f"Last Updated: {now}")
 
         with st.spinner(f"Fetching {symbol} {timeframe_selection} data..."):
@@ -97,7 +100,6 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
                 st.warning("No valid data to plot.")
                 return
 
-            # Market hours filtering
             try:
                 if timeframe_selection in ["Today", "Last Week"]:
                     df_plot = df_plot.copy()
@@ -118,7 +120,6 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
                 st.warning("No market hours data to plot.")
                 return
 
-            # Time labels
             if timeframe_selection in ["Last Month", "Last 3 Months", "Last Year"]:
                 df_plot['time_label'] = df_plot.index.strftime('%b %d')
             else:
@@ -127,23 +128,17 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
             df_plot['moving_avg'] = df_plot['price'].rolling(window=5, min_periods=1).mean()
             df_reset = df_plot.reset_index()
 
-            # Price calculations
             latest_price = round(df_plot['price'].iloc[-1], 2)
             first_price = round(df_plot['price'].iloc[0], 2)
-
-            # Timeframe change
             timeframe_delta = round(latest_price - first_price, 2)
             timeframe_percent = round((timeframe_delta / first_price) * 100, 2) if first_price else 0
             timeframe_color = "green" if timeframe_delta >= 0 else "red"
 
-            # Since today's open
             opening_price = st.session_state.opening_prices.get(symbol, latest_price)
             daily_delta = round(latest_price - opening_price, 2)
             daily_percent = round((daily_delta / opening_price) * 100, 2) if opening_price else 0
             daily_color = "green" if daily_delta >= 0 else "red"
 
-            # Since previous close
-            prev_close = None
             prev_close_delta = None
             try:
                 hist_daily = yf.Ticker(symbol).history(period="2d", interval="1d")
@@ -155,35 +150,25 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
             except Exception as e:
                 st.warning(f"Could not fetch previous close for {symbol}: {e}")
 
-            # Display latest price and changes
             st.markdown(f"<div style='font-size:24px; font-weight:bold; color:white;'>${latest_price:,.2f}</div>", unsafe_allow_html=True)
 
             if prev_close_delta is not None:
                 st.markdown(f"<div style='font-size:16px; color:{prev_close_color};'>Since Previous Close: {prev_close_delta:+.2f} ({prev_close_percent:+.2f}%)</div>", unsafe_allow_html=True)
 
             st.markdown(f"<div style='font-size:16px; color:{daily_color};'>Since Open: {daily_delta:+.2f} ({daily_percent:+.2f}%)</div>", unsafe_allow_html=True)
-
             st.markdown(f"<div style='font-size:16px; color:{timeframe_color};'>{timeframe_selection}: {timeframe_delta:+.2f} ({timeframe_percent:+.2f}%)</div>", unsafe_allow_html=True)
 
-            # Altair chart
             x_axis = alt.X('time_label:N', axis=alt.Axis(title="Time (Local)", labelAngle=-45))
             base = alt.Chart(df_reset).encode(x=x_axis)
 
             price_line = base.mark_line(color='yellow', strokeWidth=2).encode(
                 y=alt.Y('price:Q', title='Price ($)', scale=alt.Scale(zero=False)),
-                tooltip=[
-                    alt.Tooltip('timestamp:T', title='Timestamp'),
-                    alt.Tooltip('price:Q', title='Price ($)')
-                ]
+                tooltip=[alt.Tooltip('timestamp:T', title='Timestamp'), alt.Tooltip('price:Q', title='Price ($)')]
             )
 
             moving_avg_line = base.mark_line(
-                color='orange',
-                strokeDash=[5, 5],
-                opacity=0.7
-            ).encode(
-                y='moving_avg:Q'
-            )
+                color='orange', strokeDash=[5, 5], opacity=0.7
+            ).encode(y='moving_avg:Q')
 
             combined_chart = (price_line + moving_avg_line).properties(
                 title="Price & 5-Period Moving Avg"
@@ -194,7 +179,6 @@ def display_stock_dashboard(stock_symbols, key_suffix=""):
         else:
             st.warning("No data available for this timeframe.")
 
-    # Display stocks
     if len(stock_symbols) == 1:
         symbol = stock_symbols[0]
         company_name = st.session_state.company_names.get(symbol, symbol)
